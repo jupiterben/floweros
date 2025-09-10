@@ -6,9 +6,10 @@ interface LayoutProps {
 }
 
 interface GridLayoutProps extends LayoutProps {
-    cols?: number
+    cols?: number | 'auto'
     rows?: number
     gap?: number
+    minColWidth?: number // 最小列宽 (px)
 }
 
 export const HLayout = ({ children, className = '' }: LayoutProps) => {
@@ -32,9 +33,16 @@ export const GridLayout = ({
     className = '',
     cols = 2,
     rows,
-    gap = 4
+    gap = 4,
+    minColWidth = 120
 }: GridLayoutProps) => {
-    const getGridCols = (cols: number) => {
+    const getGridCols = (cols: number | 'auto') => {
+        // 自动列配置
+        if (cols === 'auto') {
+            return `grid-cols-[repeat(auto-fill,minmax(${minColWidth}px,1fr))]`
+        }
+        
+        // 固定列数配置
         const colsMap: { [key: number]: string } = {
             1: 'grid-cols-1',
             2: 'grid-cols-2',
@@ -49,7 +57,7 @@ export const GridLayout = ({
             11: 'grid-cols-11',
             12: 'grid-cols-12'
         }
-        return colsMap[cols] || 'grid-cols-2'
+        return colsMap[cols as number] || 'grid-cols-2'
     }
 
     const getGridRows = (rows?: number) => {

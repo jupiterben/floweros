@@ -64,7 +64,7 @@ const DetailView: React.FC<ViewProps> = ({ files, onFileClick }) => {
 const GridView: React.FC<ViewProps> = ({ files, onFileClick }) => {
   return (
     <div className="p-4">
-      <GridLayout cols={6} gap={4}>
+      <GridLayout cols="auto" gap={4} minColWidth={100}>
         {files.map((file, index) => (
           <div
             key={index}

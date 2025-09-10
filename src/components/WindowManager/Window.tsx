@@ -6,21 +6,12 @@ import { Minus, Square, X } from 'lucide-react'
 import type { AppWindow } from '@/context/OSContext'
 import { VLayout } from './Layout'
 
-// 动态导入应用组件
-const AppComponents: { [key: string]: React.ComponentType } = {
-  FileManager: React.lazy(() => import('../Apps/FileManager')),
-  AppStore: React.lazy(() => import('../Apps/AppStore')),
-  SystemSettings: React.lazy(() => import('../Apps/SystemSettings')),
-  Calculator: React.lazy(() => import('../Apps/Calculator')),
-  Notepad: React.lazy(() => import('../Apps/Notepad')),
-  Browser: React.lazy(() => import('../Apps/Browser')),
-}
-
 interface WindowProps {
   window: AppWindow
+  children?: React.ReactNode
 }
 
-const Window: React.FC<WindowProps> = ({ window }) => {
+const Window: React.FC<WindowProps> = ({ window, children }) => {
   const { 
     closeWindow, 
     minimizeWindow, 
@@ -37,7 +28,6 @@ const Window: React.FC<WindowProps> = ({ window }) => {
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const windowRef = useRef<HTMLDivElement>(null)
 
-  const AppComponent = AppComponents[window.component]
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget || (e.target as Element).closest('.window-header')) {
@@ -144,9 +134,7 @@ const Window: React.FC<WindowProps> = ({ window }) => {
 
       {/* 窗口内容 */}
       <VLayout>
-        <React.Suspense fallback={<div className="flex items-center justify-center h-32">加载中...</div>}>
-          {AppComponent && <AppComponent />}
-        </React.Suspense>
+        {children}
       </VLayout>
 
       {/* 调整大小手柄 */}

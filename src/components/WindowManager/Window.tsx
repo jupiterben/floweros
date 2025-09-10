@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useOS } from '@/context/OSContext'
 import { Minus, Square, X } from 'lucide-react'
 import type { AppWindow } from '@/context/OSContext'
+import { VLayout } from './Layout'
 
 // 动态导入应用组件
 const AppComponents: { [key: string]: React.ComponentType } = {
@@ -142,11 +143,11 @@ const Window: React.FC<WindowProps> = ({ window }) => {
       </div>
 
       {/* 窗口内容 */}
-      <div className="flex-1 overflow-hidden">
+      <VLayout>
         <React.Suspense fallback={<div className="flex items-center justify-center h-32">加载中...</div>}>
           {AppComponent && <AppComponent />}
         </React.Suspense>
-      </div>
+      </VLayout>
 
       {/* 调整大小手柄 */}
       {!window.isMaximized && (

@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useOS } from '@/context/OSContext'
 import { Minus, Square, X } from 'lucide-react'
 import type { AppWindow } from '@/context/OSContext'
-import { VLayout } from './Layout'
+import { VLayout } from '../Core/Layout'
 
 interface WindowProps {
   window: AppWindow

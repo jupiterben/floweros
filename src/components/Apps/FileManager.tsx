@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Folder, File, ArrowLeft, Home, Search, RefreshCw, AlertCircle, Grid3X3, List } from 'lucide-react'
-import { HLayout, SpanItem, VLayout, GridLayout } from '../WindowManager/Layout'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Folder, File, ArrowLeft, Home, Search, RefreshCw, AlertCircle, Grid3X3, List, ArrowUp } from 'lucide-react'
+import { HLayout, SpanItem, VLayout, GridLayout } from '../Core/Layout'
+import { Table, ColumnDef, SortConfig } from '../Core/Table'
 
 interface FileItem {
   name: string
@@ -23,41 +24,78 @@ interface ViewProps {
   onFileClick: (file: FileItem) => void
 }
 
-const DetailView: React.FC<ViewProps> = ({ files, onFileClick }) => {
-  return (
-    <VLayout>
-      {/* 表头 */}
-      <div className="w-full grid grid-cols-[1fr_96px_128px] gap-4 p-3 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-600">
-        <div>名称</div>
-        <div>大小</div>
-        <div>修改时间</div>
-      </div>
+interface DetailViewProps extends ViewProps {
+  onSort?: (sortConfig: SortConfig) => void
+}
 
-      {/* 文件列表 */}
-      <VLayout>
-        {files.map((file, index) => (
-          <div
-            key={index}
-            onClick={() => onFileClick(file)}
-            className="grid grid-cols-[1fr_96px_128px] gap-4 p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100"
-          >
-            <div className="flex items-center min-w-0">
-              {file.type === 'folder' ? (
-                <Folder className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
-              ) : (
-                <File className="w-5 h-5 text-gray-500 mr-2 flex-shrink-0" />
-              )}
-              <span className="text-sm truncate" title={file.name}>
-                {file.name}
-              </span>
-            </div>
-            <div className="text-sm text-gray-600">{file.size || '-'}</div>
-            <div className="text-sm text-gray-600">{file.modified}</div>
-          </div>
-        ))}
-        <SpanItem />
-      </VLayout>
-    </VLayout>
+const DetailView: React.FC<DetailViewProps> = ({ files, onFileClick, onSort }) => {
+  // 定义表格列配置
+  const columns: ColumnDef<FileItem>[] = useMemo(() => [
+    {
+      id: 'name',
+      header: '名称',
+      accessor: 'name',
+      sortable: true,
+      resizable: true,
+      width: 300,
+      minWidth: 200,
+      render: (value: string, file: FileItem) => (
+        <div className="flex items-center min-w-0">
+          {file.name === '..' ? (
+            <ArrowUp className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0" />
+          ) : file.type === 'folder' ? (
+            <Folder className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" />
+          ) : (
+            <File className="w-5 h-5 text-gray-500 mr-2 flex-shrink-0" />
+          )}
+          <span className={`text-sm truncate ${file.name === '..' ? 'text-orange-600 font-medium' : ''}`} title={value}>
+            {file.name === '..' ? '返回上级目录' : value}
+          </span>
+        </div>
+      )
+    },
+    {
+      id: 'size',
+      header: '大小',
+      accessor: 'size',
+      sortable: true,
+      resizable: true,
+      width: 96,
+      minWidth: 80,
+      render: (value: string | undefined) => (
+        <span className="text-sm text-gray-600">
+          {value || '-'}
+        </span>
+      )
+    },
+    {
+      id: 'modified',
+      header: '修改时间',
+      accessor: 'modified',
+      sortable: true,
+      resizable: true,
+      width: 160,
+      minWidth: 120,
+      render: (value: string) => (
+        <span className="text-sm text-gray-600">
+          {value}
+        </span>
+      )
+    }
+  ], [])
+
+  return (
+    <Table
+      data={files}
+      columns={columns}
+      sortable={true}
+      resizable={true}
+      draggable={true}
+      onSort={onSort}
+      onRowClick={(file) => onFileClick(file)}
+      emptyMessage="该文件夹为空"
+      className="h-full"
+    />
   )
 }
 
@@ -72,15 +110,17 @@ const GridView: React.FC<ViewProps> = ({ files, onFileClick }) => {
             className="flex flex-col items-center p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors group"
           >
             <div className="mb-2">
-              {file.type === 'folder' ? (
+              {file.name === '..' ? (
+                <ArrowUp className="w-12 h-12 text-orange-500 group-hover:text-orange-600" />
+              ) : file.type === 'folder' ? (
                 <Folder className="w-12 h-12 text-blue-500 group-hover:text-blue-600" />
               ) : (
                 <File className="w-12 h-12 text-gray-500 group-hover:text-gray-600" />
               )}
             </div>
             <div className="text-center">
-              <div className="text-xs truncate w-16 mb-1" title={file.name}>
-                {file.name}
+              <div className={`text-xs truncate w-16 mb-1 ${file.name === '..' ? 'text-orange-600 font-medium' : ''}`} title={file.name}>
+                {file.name === '..' ? '上级' : file.name}
               </div>
               {file.size && (
                 <div className="text-xs text-gray-500">
@@ -106,6 +146,7 @@ const FileManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [viewType, setViewType] = useState<ViewType>('detail')
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ column: '', direction: null })
 
   const fetchFiles = async (path?: string) => {
     setLoading(true)
@@ -137,7 +178,13 @@ const FileManager: React.FC = () => {
 
   const handleFileClick = (file: FileItem) => {
     if (file.type === 'folder') {
-      fetchFiles(file.path)
+      if (file.name === '..') {
+        // 返回上级目录
+        const parentPath = getParentPath(currentPath)
+        fetchFiles(parentPath)
+      } else {
+        fetchFiles(file.path)
+      }
     }
   }
 
@@ -163,9 +210,88 @@ const FileManager: React.FC = () => {
     fetchFiles(currentPath)
   }
 
-  const filteredFiles = files.filter(file =>
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // 处理排序
+  const handleSort = (newSortConfig: SortConfig) => {
+    setSortConfig(newSortConfig)
+  }
+
+  // 获取父目录路径
+  const getParentPath = (path: string): string => {
+    if (!path || path === '/') return ''
+    const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
+    if (parts.length <= 1) return ''
+    return parts.slice(0, -1).join('/')
+  }
+
+  // 排序和过滤文件
+  const sortedAndFilteredFiles = useMemo(() => {
+    let result = files.filter(file =>
+      file.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    // 添加返回上级目录项（当不在根目录且没有搜索时）
+    if (currentPath && !searchTerm) {
+      const parentPath = getParentPath(currentPath)
+      const parentItem: FileItem = {
+        name: '..',
+        type: 'folder',
+        size: '',
+        modified: '',
+        path: parentPath
+      }
+      result.unshift(parentItem)
+    }
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        // ".." 目录始终排在最前面
+        if (a.name === '..') return -1
+        if (b.name === '..') return 1
+
+        let aValue: any = ''
+        let bValue: any = ''
+
+        switch (sortConfig.column) {
+          case 'name':
+            aValue = a.name.toLowerCase()
+            bValue = b.name.toLowerCase()
+            break
+          case 'size':
+            // 将大小转换为数字进行比较，文件夹排在前面
+            if (a.type === 'folder' && b.type === 'file') return -1
+            if (a.type === 'file' && b.type === 'folder') return 1
+            aValue = a.size ? parseFloat(a.size.replace(/[^0-9.]/g, '')) : 0
+            bValue = b.size ? parseFloat(b.size.replace(/[^0-9.]/g, '')) : 0
+            break
+          case 'modified':
+            aValue = new Date(a.modified).getTime()
+            bValue = new Date(b.modified).getTime()
+            break
+          default:
+            return 0
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    } else {
+      // 默认排序：".." 在最前，然后文件夹在前，最后按名称排序
+      result.sort((a, b) => {
+        if (a.name === '..') return -1
+        if (b.name === '..') return 1
+        if (a.type === 'folder' && b.type === 'file') return -1
+        if (a.type === 'file' && b.type === 'folder') return 1
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      })
+    }
+
+    return result
+  }, [files, searchTerm, sortConfig, currentPath])
 
   return (
     <VLayout>
@@ -247,9 +373,13 @@ const FileManager: React.FC = () => {
         ) : (
           <>
             {viewType === 'detail' ? (
-              <DetailView files={filteredFiles} onFileClick={handleFileClick} />
+              <DetailView 
+                files={sortedAndFilteredFiles} 
+                onFileClick={handleFileClick}
+                onSort={handleSort}
+              />
             ) : (
-              <GridView files={filteredFiles} onFileClick={handleFileClick} />
+              <GridView files={sortedAndFilteredFiles} onFileClick={handleFileClick} />
             )}
           </>
         )}

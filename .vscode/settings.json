@@ -1,0 +1,22 @@
+{
+    "explorer.excludeGitIgnore": false,
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.javascript.autoAttachFilter": "smart",
+    "debug.node.autoAttach": "on",
+    "debug.javascript.usePreview": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact"
+    ],
+    "files.associations": {
+        "*.tsx": "typescriptreact",
+        "*.ts": "typescript"
+    }
+}

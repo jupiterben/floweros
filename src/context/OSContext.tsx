@@ -55,6 +55,7 @@ export const OSProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     { id: 'calculator', name: '计算器', icon: '🧮', component: 'Calculator' },
     { id: 'notepad', name: '记事本', icon: '📝', component: 'Notepad' },
     { id: 'browser', name: '浏览器', icon: '🌐', component: 'Browser' },
+    { id: 'native-app-manager', name: '应用管理器', icon: '🏢', component: 'NativeAppManager' },
   ]
 
   const openWindow = useCallback((app: DesktopApp) => {

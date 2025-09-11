@@ -52,6 +52,12 @@ const Window: React.FC<WindowProps> = ({ window, children }) => {
     })
   }
 
+  const handleTitleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    maximizeWindow(window.id)
+  }
+
   const handleMouseMove = (e: MouseEvent) => {
     if (isDragging) {
       updateWindowPosition(window.id, {
@@ -106,7 +112,7 @@ const Window: React.FC<WindowProps> = ({ window, children }) => {
       onMouseDown={handleMouseDown}
     >
       {/* 窗口标题栏 */}
-      <div className="window-header select-none flex-shrink-0">
+      <div className="window-header select-none flex-shrink-0" onDoubleClick={handleTitleDoubleClick}>
         <div className="flex items-center">
           <span className="font-medium text-gray-700">{window.title}</span>
         </div>

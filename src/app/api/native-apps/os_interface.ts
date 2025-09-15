@@ -1,6 +1,9 @@
 import { loadNativeModule } from "./utils"
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 
 const execAsync = promisify(exec)
 
@@ -24,6 +27,8 @@ export interface NativeApp {
 // 抽象基类，定义所有平台的通用接口
 abstract class OsInterface {
     abstract getNativeApps(): Promise<NativeApp[]>
+    abstract captureWindowScreenshot(app: NativeApp): Promise<string | null>
+    abstract captureFullScreenshot(): Promise<string | null>
     
     // 通用的截图占位符生成方法
     public generateScreenshotPlaceholder(app: NativeApp): string {
@@ -52,6 +57,38 @@ abstract class OsInterface {
             </svg>
         `
         return Buffer.from(canvas).toString('base64')
+    }
+
+    // 创建临时截图文件路径
+    protected createTempScreenshotPath(prefix: string = 'screenshot'): string {
+        const timestamp = Date.now()
+        const tempDir = os.tmpdir()
+        return path.join(tempDir, `${prefix}_${timestamp}.png`)
+    }
+
+    // 读取截图文件并转换为base64
+    protected async readScreenshotAsBase64(filePath: string): Promise<string | null> {
+        try {
+            if (!fs.existsSync(filePath)) {
+                console.log(`截图文件不存在: ${filePath}`)
+                return null
+            }
+
+            const imageBuffer = await fs.promises.readFile(filePath)
+            const base64 = imageBuffer.toString('base64')
+            
+            // 清理临时文件
+            try {
+                await fs.promises.unlink(filePath)
+            } catch (unlinkError) {
+                console.log(`清理临时文件失败: ${unlinkError}`)
+            }
+
+            return base64
+        } catch (error) {
+            console.error(`读取截图文件失败: ${error}`)
+            return null
+        }
     }
 }
 
@@ -204,6 +241,80 @@ export class WindowOS extends OsInterface {
         }
         return []
     }
+
+    // Windows平台窗口截图
+    async captureWindowScreenshot(app: NativeApp): Promise<string | null> {
+        if (process.platform !== 'win32') {
+            console.log('非Windows平台，无法使用Windows截图功能')
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath(`win_window_${app.id}`)
+            // 使用Win32 API（如果可用）
+            try {
+                const win32api = await loadNativeModule('win32-api')
+                if (win32api) {
+                    const { User32, Gdi32 } = win32api
+                    const user32 = User32.load()
+                    const gdi32 = Gdi32.load()
+
+                    const hwnd = parseInt(app.windowId || app.id)
+                    if (hwnd && app.bounds) {
+                        // 这里需要更复杂的Win32 API调用来实现截图
+                        // 由于复杂性，暂时跳过此方法
+                        console.log('Win32 API截图方法暂未实现')
+                    }
+                }
+            } catch (apiError) {
+                console.log('Win32 API截图方法失败:', apiError)
+            }
+
+            console.log(`Windows窗口截图失败: ${app.title}`)
+            return null
+
+        } catch (error) {
+            console.error(`Windows窗口截图异常: ${error}`)
+            return null
+        }
+    }
+
+    // Windows平台全屏截图
+    async captureFullScreenshot(): Promise<string | null> {
+        if (process.platform !== 'win32') {
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath('win_fullscreen')
+            
+            // 使用PowerShell进行全屏截图
+            const powershellScript = `
+                Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+                $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+                $bitmap = New-Object System.Drawing.Bitmap($screen.Bounds.Width, $screen.Bounds.Height)
+                $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+                $graphics.CopyFromScreen($screen.Bounds.X, $screen.Bounds.Y, 0, 0, $screen.Bounds.Size)
+                $bitmap.Save("${tempPath}", [System.Drawing.Imaging.ImageFormat]::Png)
+                $graphics.Dispose()
+                $bitmap.Dispose()
+                Write-Output "全屏截图已保存: ${tempPath}"
+            `
+
+            await execAsync(`powershell -Command "${powershellScript.replace(/"/g, '\\"')}"`)
+            
+            const base64 = await this.readScreenshotAsBase64(tempPath)
+            if (base64) {
+                console.log('Windows全屏截图成功')
+                return base64
+            }
+
+            return null
+        } catch (error) {
+            console.error(`Windows全屏截图失败: ${error}`)
+            return null
+        }
+    }
 }
 
 // macOS平台实现
@@ -277,6 +388,108 @@ export class MacOS extends OsInterface {
         } catch (error) {
             console.error('获取macOS应用程序列表失败:', error)
             return []
+        }
+    }
+
+    // macOS平台窗口截图
+    async captureWindowScreenshot(app: NativeApp): Promise<string | null> {
+        if (process.platform !== 'darwin') {
+            console.log('非macOS平台，无法使用macOS截图功能')
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath(`mac_window_${app.id}`)
+
+            // 方法1: 使用screencapture命令截取特定窗口
+            if (app.bounds) {
+                const { x, y, width, height } = app.bounds
+                const screencaptureCommand = `screencapture -x -R${x},${y},${width},${height} "${tempPath}"`
+                
+                try {
+                    await execAsync(screencaptureCommand)
+                    const base64 = await this.readScreenshotAsBase64(tempPath)
+                    if (base64) {
+                        console.log(`macOS窗口区域截图成功: ${app.title}`)
+                        return base64
+                    }
+                } catch (screenError) {
+                    console.log('screencapture区域截图失败，尝试其他方法:', screenError)
+                }
+            }
+
+            // 方法2: 使用AppleScript获取窗口截图
+            try {
+                const applescriptCommand = `
+                    osascript -e '
+                    tell application "System Events"
+                        tell process "${app.executable}"
+                            set frontmost to true
+                            delay 0.1
+                        end tell
+                    end tell
+                    
+                    do shell script "screencapture -w -x \\"${tempPath}\\""
+                    '
+                `
+
+                await execAsync(applescriptCommand)
+                const base64 = await this.readScreenshotAsBase64(tempPath)
+                if (base64) {
+                    console.log(`macOS AppleScript窗口截图成功: ${app.title}`)
+                    return base64
+                }
+            } catch (asError) {
+                console.log('AppleScript窗口截图失败:', asError)
+            }
+
+            // 方法3: 使用窗口ID进行截图（如果有）
+            if (app.windowId) {
+                try {
+                    const windowIdCommand = `screencapture -l${app.windowId} -x "${tempPath}"`
+                    await execAsync(windowIdCommand)
+                    
+                    const base64 = await this.readScreenshotAsBase64(tempPath)
+                    if (base64) {
+                        console.log(`macOS窗口ID截图成功: ${app.title}`)
+                        return base64
+                    }
+                } catch (widError) {
+                    console.log('窗口ID截图失败:', widError)
+                }
+            }
+
+            console.log(`macOS窗口截图失败: ${app.title}`)
+            return null
+
+        } catch (error) {
+            console.error(`macOS窗口截图异常: ${error}`)
+            return null
+        }
+    }
+
+    // macOS平台全屏截图
+    async captureFullScreenshot(): Promise<string | null> {
+        if (process.platform !== 'darwin') {
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath('mac_fullscreen')
+            
+            // 使用screencapture进行全屏截图
+            await execAsync(`screencapture -x "${tempPath}"`)
+            
+            const base64 = await this.readScreenshotAsBase64(tempPath)
+            if (base64) {
+                console.log('macOS全屏截图成功')
+                return base64
+            }
+
+            return null
+        } catch (error) {
+            console.error(`macOS全屏截图失败: ${error}`)
+            return null
         }
     }
 }
@@ -396,6 +609,150 @@ export class LinuxOS extends OsInterface {
             return []
         }
     }
+
+    // Linux平台窗口截图
+    async captureWindowScreenshot(app: NativeApp): Promise<string | null> {
+        if (process.platform !== 'linux') {
+            console.log('非Linux平台，无法使用Linux截图功能')
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath(`linux_window_${app.id}`)
+
+            // 方法1: 使用import命令截取特定窗口（ImageMagick）
+            if (app.windowId) {
+                try {
+                    const importCommand = `import -window ${app.windowId} "${tempPath}"`
+                    await execAsync(importCommand)
+                    
+                    const base64 = await this.readScreenshotAsBase64(tempPath)
+                    if (base64) {
+                        console.log(`Linux import窗口截图成功: ${app.title}`)
+                        return base64
+                    }
+                } catch (importError) {
+                    console.log('import命令失败，尝试其他方法:', importError)
+                }
+            }
+
+            // 方法2: 使用xwd命令截取窗口
+            if (app.windowId) {
+                try {
+                    const xwdTempPath = tempPath.replace('.png', '.xwd')
+                    const xwdCommand = `xwd -id ${app.windowId} -out "${xwdTempPath}"`
+                    await execAsync(xwdCommand)
+                    
+                    // 转换xwd到png
+                    const convertCommand = `convert "${xwdTempPath}" "${tempPath}"`
+                    await execAsync(convertCommand)
+                    
+                    // 清理xwd文件
+                    try {
+                        await fs.promises.unlink(xwdTempPath)
+                    } catch {}
+                    
+                    const base64 = await this.readScreenshotAsBase64(tempPath)
+                    if (base64) {
+                        console.log(`Linux xwd窗口截图成功: ${app.title}`)
+                        return base64
+                    }
+                } catch (xwdError) {
+                    console.log('xwd命令失败:', xwdError)
+                }
+            }
+
+            // 方法3: 使用scrot截取特定区域
+            if (app.bounds) {
+                try {
+                    const { x, y, width, height } = app.bounds
+                    const scrotCommand = `scrot -a ${x},${y},${width},${height} "${tempPath}"`
+                    await execAsync(scrotCommand)
+                    
+                    const base64 = await this.readScreenshotAsBase64(tempPath)
+                    if (base64) {
+                        console.log(`Linux scrot区域截图成功: ${app.title}`)
+                        return base64
+                    }
+                } catch (scrotError) {
+                    console.log('scrot命令失败:', scrotError)
+                }
+            }
+
+            // 方法4: 使用gnome-screenshot（GNOME桌面环境）
+            try {
+                const gnomeCommand = `gnome-screenshot -w -f "${tempPath}"`
+                await execAsync(gnomeCommand)
+                
+                const base64 = await this.readScreenshotAsBase64(tempPath)
+                if (base64) {
+                    console.log(`Linux gnome-screenshot窗口截图成功: ${app.title}`)
+                    return base64
+                }
+            } catch (gnomeError) {
+                console.log('gnome-screenshot命令失败:', gnomeError)
+            }
+
+            console.log(`Linux窗口截图失败: ${app.title}`)
+            return null
+
+        } catch (error) {
+            console.error(`Linux窗口截图异常: ${error}`)
+            return null
+        }
+    }
+
+    // Linux平台全屏截图
+    async captureFullScreenshot(): Promise<string | null> {
+        if (process.platform !== 'linux') {
+            return null
+        }
+
+        try {
+            const tempPath = this.createTempScreenshotPath('linux_fullscreen')
+            
+            // 方法1: 使用scrot进行全屏截图
+            try {
+                await execAsync(`scrot "${tempPath}"`)
+                const base64 = await this.readScreenshotAsBase64(tempPath)
+                if (base64) {
+                    console.log('Linux scrot全屏截图成功')
+                    return base64
+                }
+            } catch (scrotError) {
+                console.log('scrot全屏截图失败，尝试其他方法:', scrotError)
+            }
+
+            // 方法2: 使用import命令（ImageMagick）
+            try {
+                await execAsync(`import -window root "${tempPath}"`)
+                const base64 = await this.readScreenshotAsBase64(tempPath)
+                if (base64) {
+                    console.log('Linux import全屏截图成功')
+                    return base64
+                }
+            } catch (importError) {
+                console.log('import全屏截图失败:', importError)
+            }
+
+            // 方法3: 使用gnome-screenshot
+            try {
+                await execAsync(`gnome-screenshot -f "${tempPath}"`)
+                const base64 = await this.readScreenshotAsBase64(tempPath)
+                if (base64) {
+                    console.log('Linux gnome-screenshot全屏截图成功')
+                    return base64
+                }
+            } catch (gnomeError) {
+                console.log('gnome-screenshot全屏截图失败:', gnomeError)
+            }
+
+            return null
+        } catch (error) {
+            console.error(`Linux全屏截图失败: ${error}`)
+            return null
+        }
+    }
 }
 
 // 工厂函数：根据平台创建合适的OS接口实例
@@ -413,6 +770,16 @@ export function createOsInterface(): OsInterface {
             return new class extends OsInterface {
                 async getNativeApps(): Promise<NativeApp[]> {
                     return []
+                }
+                
+                async captureWindowScreenshot(app: NativeApp): Promise<string | null> {
+                    console.warn(`平台 ${process.platform} 不支持窗口截图功能`)
+                    return null
+                }
+                
+                async captureFullScreenshot(): Promise<string | null> {
+                    console.warn(`平台 ${process.platform} 不支持全屏截图功能`)
+                    return null
                 }
             }()
     }

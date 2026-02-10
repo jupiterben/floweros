@@ -94,11 +94,28 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
             return
         }
 
+        // 清理现有连接
+        if (wsRef.current) {
+            wsRef.current.close()
+            wsRef.current = null
+        }
+
         try {
+            console.log('尝试连接 WebSocket:', wsUrl)
             const ws = new WebSocket(wsUrl)
             wsRef.current = ws
 
+            // 设置连接超时
+            const connectionTimeout = setTimeout(() => {
+                if (ws.readyState === WebSocket.CONNECTING) {
+                    console.error('WebSocket 连接超时')
+                    ws.close()
+                    onError?.('连接超时')
+                }
+            }, 10000) // 10秒超时
+
             ws.onopen = () => {
+                clearTimeout(connectionTimeout)
                 console.log('WebSocket 连接已建立')
                 setIsConnected(true)
                 onConnectionChange?.(true)
@@ -113,18 +130,20 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
                     const message = JSON.parse(event.data)
                     handleWebSocketMessage(message)
                 } catch (error) {
-                    console.error('消息解析失败:', error)
+                    console.error('消息解析失败:', error, '原始数据:', event.data)
                 }
             }
 
-            ws.onclose = () => {
-                console.log('WebSocket 连接已关闭')
+            ws.onclose = (event) => {
+                clearTimeout(connectionTimeout)
+                console.log('WebSocket 连接已关闭', '代码:', event.code, '原因:', event.reason)
                 setIsConnected(false)
                 setIsStreaming(false)
                 onConnectionChange?.(false)
 
-                // 自动重连
-                if (options.autoReconnect) {
+                // 自动重连（避免无限重连）
+                if (options.autoReconnect && event.code !== 1000) { // 1000 是正常关闭
+                    console.log('3秒后尝试重新连接...')
                     setTimeout(() => {
                         connectWebSocket()
                     }, 3000)
@@ -132,15 +151,27 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
             }
 
             ws.onerror = (error) => {
+                clearTimeout(connectionTimeout)
                 console.error('WebSocket 错误:', error)
-                const errorMsg = '连接失败'
+                console.error('WebSocket 状态:', ws.readyState)
+                console.error('WebSocket URL:', wsUrl)
+                
+                let errorMsg = '连接失败'
+                if (ws.readyState === WebSocket.CONNECTING) {
+                    errorMsg = '无法连接到服务器'
+                } else if (ws.readyState === WebSocket.CLOSING) {
+                    errorMsg = '连接正在关闭'
+                } else if (ws.readyState === WebSocket.CLOSED) {
+                    errorMsg = '连接已断开'
+                }
+                
                 onError?.(errorMsg)
                 setIsConnected(false)
             }
 
         } catch (error) {
-            console.error('WebSocket 连接失败:', error)
-            onError?.('连接失败')
+            console.error('WebSocket 连接创建失败:', error)
+            onError?.('连接创建失败: ' + error.message)
         }
     }, [wsUrl, autoStart, options.autoReconnect, onConnectionChange, onError])
 
@@ -269,16 +300,40 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
         startRenderLoop()
         
         // 启动 WebSocket 服务器
-        fetch('/api/screen-stream')
-            .then(() => {
-                // 延迟连接，确保服务器已启动
-                setTimeout(() => {
-                    connectWebSocket()
-                }, 1000)
+        console.log('正在启动 WebSocket 服务器...')
+        fetch('/api/screen-stream', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+                }
+                return response.json()
+            })
+            .then(data => {
+                console.log('服务器响应:', data)
+                if (data.success) {
+                    console.log('WebSocket 服务器启动成功，准备连接...')
+                    // 延迟连接，确保服务器已完全启动
+                    setTimeout(() => {
+                        connectWebSocket()
+                    }, 2000)
+                } else {
+                    throw new Error(data.error || '服务器启动失败')
+                }
             })
             .catch(error => {
                 console.error('启动服务器失败:', error)
-                onError?.('服务器启动失败')
+                onError?.('服务器启动失败: ' + error.message)
+                
+                // 即使服务器启动失败，也尝试连接（可能服务器已经在运行）
+                setTimeout(() => {
+                    console.log('尝试直接连接 WebSocket...')
+                    connectWebSocket()
+                }, 3000)
             })
 
         // 全屏事件监听

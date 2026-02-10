@@ -172,23 +172,42 @@ class ScreenStreamService {
 // 初始化 WebSocket 服务器
 function initWebSocketServer() {
     if (!wss) {
-        // 创建 HTTP 服务器用于 WebSocket 升级
-        httpServer = createServer()
-        
-        // 创建 WebSocket 服务器
-        wss = new WebSocketServer({ 
-            server: httpServer,
-            path: '/api/screen-stream'
-        })
+        try {
+            // 创建 HTTP 服务器用于 WebSocket 升级
+            httpServer = createServer()
+            
+            // 创建 WebSocket 服务器
+            wss = new WebSocketServer({ 
+                server: httpServer,
+                path: '/api/screen-stream'
+            })
 
-        // 启动服务器
-        const port = process.env.WS_PORT || 3001
-        httpServer.listen(port, () => {
-            console.log(`WebSocket 服务器运行在端口 ${port}`)
-        })
+            // 启动服务器
+            const port = process.env.WS_PORT || 3001
+            
+            httpServer.on('error', (error: any) => {
+                console.error('HTTP 服务器错误:', error)
+                if (error.code === 'EADDRINUSE') {
+                    console.log(`端口 ${port} 已被占用，尝试使用其他端口...`)
+                    // 尝试使用其他端口
+                    const altPort = parseInt(port.toString()) + 1
+                    httpServer.listen(altPort, () => {
+                        console.log(`WebSocket 服务器运行在备用端口 ${altPort}`)
+                    })
+                }
+            })
 
-        // 创建屏幕流服务
-        new ScreenStreamService(wss)
+            httpServer.listen(port, () => {
+                console.log(`WebSocket 服务器运行在端口 ${port}`)
+            })
+
+            // 创建屏幕流服务
+            new ScreenStreamService(wss)
+            
+        } catch (error) {
+            console.error('WebSocket 服务器初始化失败:', error)
+            throw error
+        }
     }
     return wss
 }

@@ -2,18 +2,16 @@
 
 import React, { useState } from 'react'
 import { Monitor, Volume2, Wifi, Shield, Palette, User } from 'lucide-react'
+import { useOS } from '@/context/OSContext'
 
 const SystemSettings: React.FC = () => {
+  const { appearance, setAppearance } = useOS()
   const [activeTab, setActiveTab] = useState('display')
   const [settings, setSettings] = useState({
     brightness: 80,
     volume: 65,
     nightMode: false,
     autoSleep: '30',
-    theme: 'light',
-    wallpaper: 'default',
-    dynamicWallpaper: false,
-    wallpaperSpeed: 'normal',
   })
 
   const tabs = [
@@ -117,26 +115,26 @@ const SystemSettings: React.FC = () => {
         return (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 主题
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => updateSetting('theme', 'light')}
+                  onClick={() => setAppearance({ theme: 'light' })}
                   className={`p-3 border rounded text-sm ${
-                    settings.theme === 'light'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300'
+                    appearance.theme === 'light'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
                   浅色主题
                 </button>
                 <button
-                  onClick={() => updateSetting('theme', 'dark')}
+                  onClick={() => setAppearance({ theme: 'dark' })}
                   className={`p-3 border rounded text-sm ${
-                    settings.theme === 'dark'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300'
+                    appearance.theme === 'dark'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
                   深色主题
@@ -145,18 +143,18 @@ const SystemSettings: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 壁纸
               </label>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {['default', 'nature', 'abstract', 'gradient', 'particles', 'waves'].map((wallpaper) => (
                   <button
                     key={wallpaper}
-                    onClick={() => updateSetting('wallpaper', wallpaper)}
+                    onClick={() => setAppearance({ wallpaper })}
                     className={`aspect-video border rounded bg-gradient-to-br text-xs relative overflow-hidden ${
-                      settings.wallpaper === wallpaper
+                      appearance.wallpaper === wallpaper
                         ? 'border-blue-500 ring-2 ring-blue-200'
-                        : 'border-gray-300'
+                        : 'border-gray-300 dark:border-gray-600'
                     } ${
                       wallpaper === 'default'
                         ? 'from-blue-400 to-purple-500'
@@ -188,34 +186,34 @@ const SystemSettings: React.FC = () => {
               </div>
               
               {/* 动态壁纸设置 */}
-              {['gradient', 'particles', 'waves'].includes(settings.wallpaper) && (
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              {['gradient', 'particles', 'waves'].includes(appearance.wallpaper) && (
+                <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div>
                     <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={settings.dynamicWallpaper}
-                        onChange={(e) => updateSetting('dynamicWallpaper', e.target.checked)}
+                        checked={appearance.dynamicWallpaper}
+                        onChange={(e) => setAppearance({ dynamicWallpaper: e.target.checked })}
                         className="mr-2"
                       />
-                      <span className="text-sm text-gray-700">启用动态效果</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">启用动态效果</span>
                     </label>
                   </div>
                   
-                  {settings.dynamicWallpaper && (
+                  {appearance.dynamicWallpaper && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         动画速度
                       </label>
                       <div className="grid grid-cols-3 gap-2">
-                        {['slow', 'normal', 'fast'].map((speed) => (
+                        {(['slow', 'normal', 'fast'] as const).map((speed) => (
                           <button
                             key={speed}
-                            onClick={() => updateSetting('wallpaperSpeed', speed)}
+                            onClick={() => setAppearance({ wallpaperSpeed: speed })}
                             className={`py-2 px-3 text-xs rounded ${
-                              settings.wallpaperSpeed === speed
+                              appearance.wallpaperSpeed === speed
                                 ? 'bg-blue-500 text-white'
-                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                             }`}
                           >
                             {speed === 'slow' ? '慢速' : speed === 'normal' ? '正常' : '快速'}
@@ -226,37 +224,36 @@ const SystemSettings: React.FC = () => {
                   )}
                   
                   {/* 动态壁纸预览 */}
-                  {settings.dynamicWallpaper && (
+                  {appearance.dynamicWallpaper && (
                     <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         预览效果
                       </label>
-                      <div className={`h-20 rounded border-2 border-gray-300 relative overflow-hidden ${
-                        settings.wallpaper === 'gradient'
+                      <div className={`h-20 rounded border-2 border-gray-300 dark:border-gray-600 relative overflow-hidden ${
+                        appearance.wallpaper === 'gradient'
                           ? 'bg-gradient-to-r from-purple-400 via-pink-500 to-red-500'
-                          : settings.wallpaper === 'particles'
+                          : appearance.wallpaper === 'particles'
                           ? 'bg-gradient-to-br from-indigo-900 to-purple-900'
                           : 'bg-gradient-to-r from-blue-400 to-cyan-400'
                       }`}>
-                        {/* 动态效果模拟 */}
                         <div className={`absolute inset-0 opacity-30 ${
-                          settings.wallpaperSpeed === 'slow' ? 'animate-pulse' :
-                          settings.wallpaperSpeed === 'normal' ? 'animate-bounce' : 'animate-ping'
+                          appearance.wallpaperSpeed === 'slow' ? 'animate-pulse' :
+                          appearance.wallpaperSpeed === 'normal' ? 'animate-bounce' : 'animate-ping'
                         }`}>
-                          {settings.wallpaper === 'particles' && (
+                          {appearance.wallpaper === 'particles' && (
                             <div className="absolute top-2 left-2 w-1 h-1 bg-white rounded-full animate-ping" />
                           )}
-                          {settings.wallpaper === 'particles' && (
+                          {appearance.wallpaper === 'particles' && (
                             <div className="absolute top-4 right-4 w-1 h-1 bg-white rounded-full animate-ping delay-75" />
                           )}
-                          {settings.wallpaper === 'waves' && (
+                          {appearance.wallpaper === 'waves' && (
                             <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white/20 to-transparent animate-pulse" />
                           )}
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-white text-xs font-medium">
-                            {settings.wallpaper === 'gradient' ? '彩色渐变' :
-                             settings.wallpaper === 'particles' ? '星空粒子' : '海洋波浪'}
+                            {appearance.wallpaper === 'gradient' ? '彩色渐变' :
+                             appearance.wallpaper === 'particles' ? '星空粒子' : '海洋波浪'}
                           </span>
                         </div>
                       </div>

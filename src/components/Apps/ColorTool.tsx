@@ -52,6 +52,170 @@ function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: n
   return { r: r * 255, g: g * 255, b: b * 255 }
 }
 
+// W3C CSS Color Module Level 3 扩展颜色关键字（SVG 1.0）+ rebeccapurple，hex 小写，en 为 CSS 关键字
+const COLOR_NAMES: { hex: string; en: string; zh: string }[] = [
+  { hex: '#f0f8ff', en: 'aliceblue', zh: '爱丽丝蓝' },
+  { hex: '#faebd7', en: 'antiquewhite', zh: '古董白' },
+  { hex: '#00ffff', en: 'aqua', zh: '青色' },
+  { hex: '#7fffd4', en: 'aquamarine', zh: '碧绿' },
+  { hex: '#f0ffff', en: 'azure', zh: '天蓝' },
+  { hex: '#f5f5dc', en: 'beige', zh: '米色' },
+  { hex: '#ffe4c4', en: 'bisque', zh: '橘黄' },
+  { hex: '#000000', en: 'black', zh: '黑色' },
+  { hex: '#ffebcd', en: 'blanchedalmond', zh: '杏仁白' },
+  { hex: '#0000ff', en: 'blue', zh: '蓝色' },
+  { hex: '#8a2be2', en: 'blueviolet', zh: '蓝紫' },
+  { hex: '#a52a2a', en: 'brown', zh: '棕色' },
+  { hex: '#deb887', en: 'burlywood', zh: '原木色' },
+  { hex: '#5f9ea0', en: 'cadetblue', zh: '军蓝' },
+  { hex: '#7fff00', en: 'chartreuse', zh: '黄绿' },
+  { hex: '#d2691e', en: 'chocolate', zh: '巧克力色' },
+  { hex: '#ff7f50', en: 'coral', zh: '珊瑚色' },
+  { hex: '#6495ed', en: 'cornflowerblue', zh: '矢车菊蓝' },
+  { hex: '#fff8dc', en: 'cornsilk', zh: '玉米丝色' },
+  { hex: '#dc143c', en: 'crimson', zh: '深红' },
+  { hex: '#00ffff', en: 'cyan', zh: '青色' },
+  { hex: '#00008b', en: 'darkblue', zh: '深蓝' },
+  { hex: '#008b8b', en: 'darkcyan', zh: '深青' },
+  { hex: '#b8860b', en: 'darkgoldenrod', zh: '深金菊' },
+  { hex: '#a9a9a9', en: 'darkgray', zh: '深灰' },
+  { hex: '#006400', en: 'darkgreen', zh: '深绿' },
+  { hex: '#bdb76b', en: 'darkkhaki', zh: '深卡其' },
+  { hex: '#8b008b', en: 'darkmagenta', zh: '深洋红' },
+  { hex: '#556b2f', en: 'darkolivegreen', zh: '深橄榄绿' },
+  { hex: '#ff8c00', en: 'darkorange', zh: '深橙' },
+  { hex: '#9932cc', en: 'darkorchid', zh: '深兰紫' },
+  { hex: '#8b0000', en: 'darkred', zh: '深红' },
+  { hex: '#e9967a', en: 'darksalmon', zh: '深鲑红' },
+  { hex: '#8fbc8f', en: 'darkseagreen', zh: '深海绿' },
+  { hex: '#483d8b', en: 'darkslateblue', zh: '深板岩蓝' },
+  { hex: '#2f4f4f', en: 'darkslategray', zh: '深板岩灰' },
+  { hex: '#00ced1', en: 'darkturquoise', zh: '深青绿' },
+  { hex: '#9400d3', en: 'darkviolet', zh: '深紫' },
+  { hex: '#ff1493', en: 'deeppink', zh: '深粉' },
+  { hex: '#00bfff', en: 'deepskyblue', zh: '深天蓝' },
+  { hex: '#696969', en: 'dimgray', zh: '暗灰' },
+  { hex: '#1e90ff', en: 'dodgerblue', zh: '道奇蓝' },
+  { hex: '#b22222', en: 'firebrick', zh: '砖红' },
+  { hex: '#fffaf0', en: 'floralwhite', zh: '花白' },
+  { hex: '#228b22', en: 'forestgreen', zh: '森林绿' },
+  { hex: '#ff00ff', en: 'fuchsia', zh: '洋红' },
+  { hex: '#dcdcdc', en: 'gainsboro', zh: '庚斯伯勒灰' },
+  { hex: '#f8f8ff', en: 'ghostwhite', zh: '幽灵白' },
+  { hex: '#ffd700', en: 'gold', zh: '金色' },
+  { hex: '#daa520', en: 'goldenrod', zh: '金菊' },
+  { hex: '#808080', en: 'gray', zh: '灰色' },
+  { hex: '#008000', en: 'green', zh: '绿色' },
+  { hex: '#adff2f', en: 'greenyellow', zh: '黄绿' },
+  { hex: '#f0fff0', en: 'honeydew', zh: '蜜瓜色' },
+  { hex: '#ff69b4', en: 'hotpink', zh: '亮粉' },
+  { hex: '#cd5c5c', en: 'indianred', zh: '印度红' },
+  { hex: '#4b0082', en: 'indigo', zh: '靛蓝' },
+  { hex: '#fffff0', en: 'ivory', zh: '象牙白' },
+  { hex: '#f0e68c', en: 'khaki', zh: '卡其' },
+  { hex: '#e6e6fa', en: 'lavender', zh: '薰衣草' },
+  { hex: '#fff0f5', en: 'lavenderblush', zh: '薰衣草红' },
+  { hex: '#7cfc00', en: 'lawngreen', zh: '草坪绿' },
+  { hex: '#fffacd', en: 'lemonchiffon', zh: '柠檬绸' },
+  { hex: '#add8e6', en: 'lightblue', zh: '浅蓝' },
+  { hex: '#f08080', en: 'lightcoral', zh: '浅珊瑚' },
+  { hex: '#e0ffff', en: 'lightcyan', zh: '浅青' },
+  { hex: '#fafad2', en: 'lightgoldenrodyellow', zh: '浅金菊黄' },
+  { hex: '#d3d3d3', en: 'lightgray', zh: '浅灰' },
+  { hex: '#90ee90', en: 'lightgreen', zh: '浅绿' },
+  { hex: '#ffb6c1', en: 'lightpink', zh: '浅粉' },
+  { hex: '#ffa07a', en: 'lightsalmon', zh: '浅鲑红' },
+  { hex: '#20b2aa', en: 'lightseagreen', zh: '浅海绿' },
+  { hex: '#87cefa', en: 'lightskyblue', zh: '浅天蓝' },
+  { hex: '#778899', en: 'lightslategray', zh: '浅板岩灰' },
+  { hex: '#b0c4de', en: 'lightsteelblue', zh: '浅钢青' },
+  { hex: '#ffffe0', en: 'lightyellow', zh: '浅黄' },
+  { hex: '#00ff00', en: 'lime', zh: '酸橙绿' },
+  { hex: '#32cd32', en: 'limegreen', zh: '柠檬绿' },
+  { hex: '#faf0e6', en: 'linen', zh: '亚麻色' },
+  { hex: '#ff00ff', en: 'magenta', zh: '洋红' },
+  { hex: '#800000', en: 'maroon', zh: '栗色' },
+  { hex: '#66cdaa', en: 'mediumaquamarine', zh: '中碧绿' },
+  { hex: '#0000cd', en: 'mediumblue', zh: '中蓝' },
+  { hex: '#ba55d3', en: 'mediumorchid', zh: '中兰紫' },
+  { hex: '#9370db', en: 'mediumpurple', zh: '中紫' },
+  { hex: '#3cb371', en: 'mediumseagreen', zh: '中海绿' },
+  { hex: '#7b68ee', en: 'mediumslateblue', zh: '中板岩蓝' },
+  { hex: '#00fa9a', en: 'mediumspringgreen', zh: '中春绿' },
+  { hex: '#48d1cc', en: 'mediumturquoise', zh: '中青绿' },
+  { hex: '#c71585', en: 'mediumvioletred', zh: '中紫红' },
+  { hex: '#191970', en: 'midnightblue', zh: '午夜蓝' },
+  { hex: '#f5fffa', en: 'mintcream', zh: '薄荷乳白' },
+  { hex: '#ffe4e1', en: 'mistyrose', zh: '雾玫瑰' },
+  { hex: '#ffe4b5', en: 'moccasin', zh: '鹿皮鞋色' },
+  { hex: '#ffdead', en: 'navajowhite', zh: '纳瓦白' },
+  { hex: '#000080', en: 'navy', zh: '藏青' },
+  { hex: '#fdf5e6', en: 'oldlace', zh: '旧蕾丝色' },
+  { hex: '#808000', en: 'olive', zh: '橄榄绿' },
+  { hex: '#6b8e23', en: 'olivedrab', zh: '橄榄褐' },
+  { hex: '#ffa500', en: 'orange', zh: '橙色' },
+  { hex: '#ff4500', en: 'orangered', zh: '橙红' },
+  { hex: '#da70d6', en: 'orchid', zh: '兰花紫' },
+  { hex: '#eee8aa', en: 'palegoldenrod', zh: '浅金菊' },
+  { hex: '#98fb98', en: 'palegreen', zh: '浅绿' },
+  { hex: '#afeeee', en: 'paleturquoise', zh: '浅青绿' },
+  { hex: '#db7093', en: 'palevioletred', zh: '浅紫红' },
+  { hex: '#ffefd5', en: 'papayawhip', zh: '番木瓜色' },
+  { hex: '#ffdab9', en: 'peachpuff', zh: '桃色' },
+  { hex: '#cd853f', en: 'peru', zh: '秘鲁色' },
+  { hex: '#ffc0cb', en: 'pink', zh: '粉色' },
+  { hex: '#dda0dd', en: 'plum', zh: '梅红' },
+  { hex: '#b0e0e6', en: 'powderblue', zh: '粉蓝' },
+  { hex: '#800080', en: 'purple', zh: '紫色' },
+  { hex: '#663399', en: 'rebeccapurple', zh: '丽贝卡紫' },
+  { hex: '#ff0000', en: 'red', zh: '红色' },
+  { hex: '#bc8f8f', en: 'rosybrown', zh: '玫瑰棕' },
+  { hex: '#4169e1', en: 'royalblue', zh: '宝蓝' },
+  { hex: '#8b4513', en: 'saddlebrown', zh: '马鞍棕' },
+  { hex: '#fa8072', en: 'salmon', zh: '鲑红' },
+  { hex: '#f4a460', en: 'sandybrown', zh: '沙棕' },
+  { hex: '#2e8b57', en: 'seagreen', zh: '海绿' },
+  { hex: '#fff5ee', en: 'seashell', zh: '海贝色' },
+  { hex: '#a0522d', en: 'sienna', zh: '赭色' },
+  { hex: '#c0c0c0', en: 'silver', zh: '银色' },
+  { hex: '#87ceeb', en: 'skyblue', zh: '天蓝' },
+  { hex: '#6a5acd', en: 'slateblue', zh: '板岩蓝' },
+  { hex: '#708090', en: 'slategray', zh: '板岩灰' },
+  { hex: '#fffafa', en: 'snow', zh: '雪白' },
+  { hex: '#00ff7f', en: 'springgreen', zh: '春绿' },
+  { hex: '#4682b4', en: 'steelblue', zh: '钢青' },
+  { hex: '#d2b48c', en: 'tan', zh: '茶色' },
+  { hex: '#008080', en: 'teal', zh: '青绿' },
+  { hex: '#d8bfd8', en: 'thistle', zh: '蓟色' },
+  { hex: '#ff6347', en: 'tomato', zh: '番茄红' },
+  { hex: '#40e0d0', en: 'turquoise', zh: '青绿' },
+  { hex: '#ee82ee', en: 'violet', zh: '紫罗兰' },
+  { hex: '#f5deb3', en: 'wheat', zh: '麦色' },
+  { hex: '#ffffff', en: 'white', zh: '白色' },
+  { hex: '#f5f5f5', en: 'whitesmoke', zh: '烟白' },
+  { hex: '#ffff00', en: 'yellow', zh: '黄色' },
+  { hex: '#9acd32', en: 'yellowgreen', zh: '黄绿' },
+]
+
+function colorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2)
+}
+
+function getClosestColorName(r: number, g: number, b: number): { en: string; zh: string } | null {
+  let best: { en: string; zh: string } | null = null
+  let bestD = Infinity
+  for (const { hex, en, zh } of COLOR_NAMES) {
+    const rgb = hexToRgb(hex)
+    if (!rgb) continue
+    const d = colorDistance(r, g, b, rgb.r, rgb.g, rgb.b)
+    if (d < bestD) {
+      bestD = d
+      best = { en, zh }
+    }
+  }
+  return best
+}
+
 const defaultColor: ColorState = { hex: '#3b82f6', r: 59, g: 130, b: 246, h: 217, s: 91, l: 60 }
 
 function parseInputToState(hex: string, rgb?: { r: number; g: number; b: number }): ColorState {
@@ -151,6 +315,8 @@ const ColorTool: React.FC = () => {
     setImageDataUrl(null)
   }
 
+  const colorName = getClosestColorName(color.r, color.g, color.b)
+
   return (
     <div className="h-full w-full min-h-0 overflow-auto p-3 sm:p-4">
       <div className="mx-auto max-w-lg space-y-3 sm:space-y-4">
@@ -158,6 +324,11 @@ const ColorTool: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg border-2 border-gray-300 shadow-inner" style={{ backgroundColor: color.hex }} />
           <div className="min-w-0 flex-1 space-y-2">
+            {colorName && (
+              <p className="text-sm text-gray-600 truncate" title="颜色名称 / Color name">
+                {colorName.zh} <span className="text-gray-400">({colorName.en})</span>
+              </p>
+            )}
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input
                 type="color"

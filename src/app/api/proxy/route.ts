@@ -37,20 +37,46 @@ export async function GET(request: NextRequest) {
     if (contentType.includes('text/html')) {
       const urlObj = new URL(url)
       const isHttpTarget = url.startsWith('http:')
-      
-      // 移除或修改可能阻止iframe的meta标签和脚本
+      const targetOrigin = urlObj.origin
+      // 注入：先设置目标站 origin，再将页面内对目标站的 fetch/XHR 重写到同源代理，避免 CORS
+      const proxyInject = `<script>window.__PROXY_TARGET_ORIGIN="${targetOrigin.replace(/"/g, '\\"')}";</script>
+<script>
+(function(){
+  var o=window.__PROXY_TARGET_ORIGIN;
+  if(!o)return;
+  var P='/api/proxy';
+  var oFetch=window.fetch;
+  window.fetch=function(i,opt){
+    var u=typeof i==='string'?i:(i&&i.url);
+    if(!u||(u.indexOf(o)!==0&&!(u.slice(0,5)==='http'&&(function(){try{return new URL(u).origin===o}catch(e){return false}})())))
+      return oFetch.call(this,i,opt);
+    var pu=P+'?url='+encodeURIComponent(u);
+    var ni=typeof i==='string'?pu:(typeof Request!=='undefined'?new Request(pu,i):pu);
+    return oFetch.call(this,ni,opt);
+  };
+  var OX=window.XMLHttpRequest;
+  window.XMLHttpRequest=function(){
+    var x=new OX(),oo=x.open;
+    x.open=function(m,u){
+      var a=Array.prototype.slice.call(arguments);
+      if(u&&(u.indexOf(o)===0||(u.slice(0,5)==='http'&&(function(){try{return new URL(u).origin===o}catch(e){return false}})())))
+        a[1]=P+'?url='+encodeURIComponent(u);
+      return oo.apply(this,a);
+    };
+    return x;
+  };
+})();
+</script>`
       modifiedContent = content
         .replace(/<meta[^>]*http-equiv=["']X-Frame-Options["'][^>]*>/gi, '')
         .replace(/<meta[^>]*name=["']frame-options["'][^>]*>/gi, '')
         .replace(/<meta[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '')
-        // 修改相对路径为绝对路径
         .replace(/src=["']\/([^"']*)["']/g, `src="${urlObj.origin}/$1"`)
         .replace(/href=["']\/([^"']*)["']/g, `href="${urlObj.origin}/$1"`)
-        // 处理混合内容 - 如果目标是HTTP，升级到HTTPS
         .replace(/src=["']http:\/\//gi, isHttpTarget ? 'src="https://' : 'src="http://')
         .replace(/href=["']http:\/\//gi, isHttpTarget ? 'href="https://' : 'href="http://')
-        // 添加base标签和CSP meta标签
         .replace(/<head>/i, `<head>
+${proxyInject}
           <base href="${urlObj.origin}/">
           <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests;">
         `)

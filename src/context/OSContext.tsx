@@ -1,6 +1,34 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+
+const APPEARANCE_STORAGE_KEY = 'floweros-appearance'
+
+export interface AppearanceSettings {
+  theme: 'light' | 'dark'
+  wallpaper: string
+  dynamicWallpaper: boolean
+  wallpaperSpeed: 'slow' | 'normal' | 'fast'
+}
+
+const defaultAppearance: AppearanceSettings = {
+  theme: 'light',
+  wallpaper: 'default',
+  dynamicWallpaper: false,
+  wallpaperSpeed: 'normal',
+}
+
+function loadAppearance(): AppearanceSettings {
+  if (typeof window === 'undefined') return defaultAppearance
+  try {
+    const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY)
+    if (!raw) return defaultAppearance
+    const parsed = JSON.parse(raw) as Partial<AppearanceSettings>
+    return { ...defaultAppearance, ...parsed }
+  } catch {
+    return defaultAppearance
+  }
+}
 
 export interface AppWindow {
   id: string
@@ -24,6 +52,8 @@ interface OSContextType {
   windows: AppWindow[]
   apps: DesktopApp[]
   activeWindowId: string | null
+  appearance: AppearanceSettings
+  setAppearance: (patch: Partial<AppearanceSettings>) => void
   openWindow: (app: DesktopApp) => void
   closeWindow: (windowId: string) => void
   minimizeWindow: (windowId: string) => void
@@ -47,6 +77,23 @@ export const OSProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const [windows, setWindows] = useState<AppWindow[]>([])
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null)
   const [nextZIndex, setNextZIndex] = useState(1000)
+  const [appearance, setAppearanceState] = useState<AppearanceSettings>(defaultAppearance)
+
+  useEffect(() => {
+    setAppearanceState(loadAppearance())
+  }, [])
+
+  const setAppearance = useCallback((patch: Partial<AppearanceSettings>) => {
+    setAppearanceState(prev => {
+      const next = { ...prev, ...patch }
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(next))
+        } catch {}
+      }
+      return next
+    })
+  }, [])
 
   const apps: DesktopApp[] = [
     { id: 'file-manager', name: '文件管理器', icon: '📁', component: 'FileManager' },
@@ -131,6 +178,8 @@ export const OSProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       windows,
       apps,
       activeWindowId,
+      appearance,
+      setAppearance,
       openWindow,
       closeWindow,
       minimizeWindow,

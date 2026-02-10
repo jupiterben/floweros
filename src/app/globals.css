@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* 使用 class 切换深色模式，便于系统设置外观生效 */
+@custom-variant dark (&&:where(.dark, .dark *));
 
 @layer base {
   html {
@@ -25,8 +27,8 @@
   }
   
   .desktop-icon {
-    @apply flex flex-col items-center justify-center w-16 h-16 p-2 rounded-lg 
-           hover:bg-white/10 transition-colors cursor-pointer text-white text-xs;
+    @apply flex flex-col items-center justify-center w-12 h-12 p-1.5 rounded-md 
+           hover:bg-white/10 transition-colors cursor-pointer text-white text-[10px] leading-tight;
   }
   
   .taskbar {

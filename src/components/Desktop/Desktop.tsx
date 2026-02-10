@@ -2,24 +2,31 @@
 
 import React from 'react'
 import { useOS } from '@/context/OSContext'
+import WallpaperManager from './WallpaperManager'
 
 const Desktop: React.FC = () => {
-  const { apps, openWindow } = useOS()
+  const { apps, openWindow, appearance } = useOS()
 
   const handleAppClick = (app: any) => {
     openWindow(app)
   }
 
   return (
-    <div className="h-full p-4">
-      <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-4">
+    <div className="h-full relative">
+      <WallpaperManager
+        wallpaper={appearance.wallpaper}
+        dynamicWallpaper={appearance.dynamicWallpaper}
+        wallpaperSpeed={appearance.wallpaperSpeed}
+      />
+      <div className="relative z-10 h-full p-2">
+      <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
         {apps.map((app) => (
           <div
             key={app.id}
             className="desktop-icon"
             onClick={() => handleAppClick(app)}
           >
-            <div className="text-2xl mb-1">{app.icon}</div>
+            <div className="text-xl mb-0.5">{app.icon}</div>
             <span className="text-center">{app.name}</span>
           </div>
         ))}
@@ -40,6 +47,7 @@ const Desktop: React.FC = () => {
             day: 'numeric' 
           })}
         </div>
+      </div>
       </div>
     </div>
   )

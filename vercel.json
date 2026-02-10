@@ -4,11 +4,6 @@
   "framework": "nextjs",
   "installCommand": "pnpm install",
   "devCommand": "pnpm dev",
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)",

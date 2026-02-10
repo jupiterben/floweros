@@ -171,7 +171,8 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
 
         } catch (error) {
             console.error('WebSocket 连接创建失败:', error)
-            onError?.('连接创建失败: ' + error.message)
+            const msg = error instanceof Error ? error.message : String(error)
+            onError?.('连接创建失败: ' + msg)
         }
     }, [wsUrl, autoStart, options.autoReconnect, onConnectionChange, onError])
 
@@ -327,7 +328,8 @@ export const ScreenStream: React.FC<ScreenStreamProps> = ({
             })
             .catch(error => {
                 console.error('启动服务器失败:', error)
-                onError?.('服务器启动失败: ' + error.message)
+                const msg = error instanceof Error ? error.message : String(error)
+                onError?.('服务器启动失败: ' + msg)
                 
                 // 即使服务器启动失败，也尝试连接（可能服务器已经在运行）
                 setTimeout(() => {

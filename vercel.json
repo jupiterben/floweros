@@ -1,9 +1,6 @@
 {
-  "buildCommand": "pnpm build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "corepack enable && pnpm install",
-  "devCommand": "pnpm dev",
   "rewrites": [
     {
       "source": "/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)",

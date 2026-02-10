@@ -216,6 +216,22 @@ function getClosestColorName(r: number, g: number, b: number): { en: string; zh:
   return best
 }
 
+// 按色系排序：先按色相 H，中性灰（低饱和度）放最后按明度
+const COLOR_NAMES_BY_HUE: { hex: string; en: string; zh: string }[] = [...COLOR_NAMES].sort((a, b) => {
+  const rgbA = hexToRgb(a.hex)!
+  const rgbB = hexToRgb(b.hex)!
+  const hslA = rgbToHsl(rgbA.r, rgbA.g, rgbA.b)
+  const hslB = rgbToHsl(rgbB.r, rgbB.g, rgbB.b)
+  const neutral = (s: number) => s < 12
+  if (neutral(hslA.s) && neutral(hslB.s)) return hslA.l - hslB.l // 灰系按明度
+  if (neutral(hslA.s)) return 1
+  if (neutral(hslB.s)) return -1
+  const hA = hslA.h === 0 && hslA.s === 0 ? 0 : hslA.h
+  const hB = hslB.h === 0 && hslB.s === 0 ? 0 : hslB.h
+  if (Math.abs(hA - hB) > 1) return hA - hB
+  return hslB.s - hslA.s // 同色相按饱和度降序
+})
+
 const defaultColor: ColorState = { hex: '#3b82f6', r: 59, g: 130, b: 246, h: 217, s: 91, l: 60 }
 
 function parseInputToState(hex: string, rgb?: { r: number; g: number; b: number }): ColorState {
@@ -409,6 +425,27 @@ const ColorTool: React.FC = () => {
           <button type="button" onClick={() => copy(`hsl(${color.h}, ${color.s}%, ${color.l}%)`, 'hsl')} className="p-1.5 rounded hover:bg-gray-100 shrink-0">
             <Copy size={14} /> {copied === 'hsl' ? '✓' : ''}
           </button>
+        </div>
+
+        {/* 所有支持的英文颜色快速设置 */}
+        <div className="space-y-2 min-w-0">
+          <p className="text-sm font-medium text-gray-700">快速设置 · 按色系排序 ({COLOR_NAMES_BY_HUE.length} 个)</p>
+          <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 max-h-48 overflow-auto rounded border border-gray-200 p-2 bg-gray-50/50">
+            {COLOR_NAMES_BY_HUE.map(({ hex, en, zh }) => (
+              <button
+                key={en}
+                type="button"
+                onClick={() => applyColor(parseInputToState(hex))}
+                className="group relative h-7 min-w-0 rounded border border-gray-200 hover:border-gray-400 hover:ring-1 hover:ring-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shrink-0"
+                style={{ backgroundColor: hex }}
+                title={`${en} · ${zh} · ${hex}`}
+              >
+                <span className="absolute inset-0 flex items-center justify-center rounded bg-black/60 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 group-focus:opacity-100 truncate px-0.5">
+                  {en}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

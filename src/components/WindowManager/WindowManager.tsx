@@ -13,7 +13,7 @@ const AppComponents: { [key: string]: React.ComponentType } = {
   Notepad: React.lazy(() => import('../Apps/Notepad')),
   ColorTool: React.lazy(() => import('../Apps/ColorTool')),
   Browser: React.lazy(() => import('../Apps/Browser')),
-  NativeAppManager: React.lazy(() => import('../Apps/NativeAppManager')),
+  // NativeAppManager: React.lazy(() => import('../Apps/NativeAppManager')),
 }
 
 const WindowManager: React.FC = () => {

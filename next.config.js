@@ -21,7 +21,10 @@ const nextConfig = {
     esmExternals: true,
   },
   
-  // Webpack 配置
+  // Next.js 16 默认用 Turbopack，显式声明空配置以消除告警
+  turbopack: {},
+
+  // Webpack 配置（使用 --webpack 时生效）
   webpack: (config, { isServer }) => {
     if (isServer) {
       // 服务器端外部包配置

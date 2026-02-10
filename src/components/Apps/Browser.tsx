@@ -4,17 +4,19 @@ import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, RotateCcw, Home, Search, Star, MoreVertical } from 'lucide-react'
 
 const Browser: React.FC = () => {
-  const [url, setUrl] = useState('https://www.bing.com')
-  const [currentUrl, setCurrentUrl] = useState('https://www.bing.com')
+  // 主流站（Bing/DuckDuckGo 等）均禁止被 iframe，默认走代理去掉 X-Frame-Options/CSP
+  const defaultHome = 'https://duckduckgo.com'
+  const [url, setUrl] = useState(defaultHome)
+  const [currentUrl, setCurrentUrl] = useState(defaultHome)
   const [isLoading, setIsLoading] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const [useProxy, setUseProxy] = useState(false)
-  const [history, setHistory] = useState(['https://www.bing.com'])
+  const [useProxy, setUseProxy] = useState(true)
+  const [history, setHistory] = useState([defaultHome])
   const [historyIndex, setHistoryIndex] = useState(0)
 
   const bookmarks = [
-    { name: 'Bing搜索', url: 'https://www.bing.com', iframe: true, protocol: 'https' },
-    { name: 'DuckDuckGo', url: 'https://duckduckgo.com', iframe: true, protocol: 'https' },
+    { name: 'Bing搜索', url: 'https://www.bing.com', iframe: false, protocol: 'https' },
+    { name: 'DuckDuckGo', url: 'https://duckduckgo.com', iframe: false, protocol: 'https' },
     { name: 'Wikipedia', url: 'https://www.wikipedia.org', iframe: true, protocol: 'https' },
     { name: 'GitHub', url: 'https://github.com', iframe: false, protocol: 'https' },
     { name: 'StackOverflow', url: 'https://stackoverflow.com', iframe: false, protocol: 'https' },
@@ -84,8 +86,8 @@ const Browser: React.FC = () => {
   }
 
   const handleHome = () => {
-    handleNavigate('https://www.bing.com')
-    setUrl('https://www.bing.com')
+    handleNavigate(defaultHome)
+    setUrl(defaultHome)
   }
 
   const handleIframeLoad = () => {

@@ -89,18 +89,18 @@ const Calculator: React.FC = () => {
 
   const getButtonClass = (button: string) => {
     if (button === '=') {
-      return 'bg-blue-500 hover:bg-blue-600 text-white'
+      return 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white'
     }
     if (['÷', '×', '-', '+'].includes(button)) {
-      return 'bg-gray-500 hover:bg-gray-600 text-white'
+      return 'bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white'
     }
     if (['C', '±', '%'].includes(button)) {
-      return 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+      return 'bg-gray-300 hover:bg-gray-400 active:bg-gray-500 text-gray-800'
     }
     if (button === '0') {
-      return 'col-span-2 bg-gray-200 hover:bg-gray-300 text-gray-800'
+      return 'col-span-2 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800'
     }
-    return 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+    return 'bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800'
   }
 
   const handleButtonClick = (button: string) => {
@@ -122,27 +122,29 @@ const Calculator: React.FC = () => {
   }
 
   return (
-    <div className="max-w-xs mx-auto bg-gray-100 rounded-lg p-4">
+    <div className="w-full max-w-[280px] mx-auto bg-gray-100 dark:bg-gray-800 rounded-xl p-4 shadow-inner border border-gray-200 dark:border-gray-700">
       {/* 显示屏 */}
-      <div className="bg-black text-white text-right text-2xl p-4 rounded mb-4 min-h-[60px] flex items-center justify-end">
-        {display}
+      <div className="bg-gray-900 text-green-400 text-right text-2xl font-mono p-4 rounded-lg mb-4 min-h-[64px] flex items-center justify-end overflow-hidden break-all">
+        <span className="truncate" title={display}>{display}</span>
       </div>
 
       {/* 按钮网格 */}
       <div className="grid grid-cols-4 gap-2">
-        {buttons.flat().map((button, index) => (
-          button !== '' ? (
-            <button
-              key={index}
-              onClick={() => handleButtonClick(button)}
-              className={`h-12 rounded font-medium transition-colors ${getButtonClass(button)}`}
-            >
-              {button}
-            </button>
-          ) : (
-            <div key={index} />
+        {buttons.flatMap((row, rowIndex) =>
+          row.map((button, colIndex) =>
+            button !== '' ? (
+              <button
+                key={`${rowIndex}-${colIndex}`}
+                onClick={() => handleButtonClick(button)}
+                className={`h-14 rounded-lg font-medium transition-colors select-none ${getButtonClass(button)}`}
+              >
+                {button}
+              </button>
+            ) : (
+              <div key={`${rowIndex}-${colIndex}`} aria-hidden />
+            )
           )
-        ))}
+        )}
       </div>
     </div>
   )

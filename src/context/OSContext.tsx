@@ -102,6 +102,7 @@ export const OSProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     { id: 'calculator', name: '计算器', icon: '🧮', component: 'Calculator' },
     { id: 'notepad', name: '记事本', icon: '📝', component: 'Notepad' },
     { id: 'color-tool', name: '颜色工具', icon: '🎨', component: 'ColorTool' },
+    { id: 'timestamp-converter', name: '时间戳转换', icon: '⏱️', component: 'TimestampConverter' },
     { id: 'browser', name: '浏览器', icon: '🌐', component: 'Browser' },
     { id: 'native-app-manager', name: '应用管理器', icon: '🏢', component: 'NativeAppManager' },
   ]
